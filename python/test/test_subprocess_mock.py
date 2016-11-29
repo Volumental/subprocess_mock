@@ -71,3 +71,11 @@ def test_popen_communicate_universal_newlines():
         assert_equal(stdout, "X")
         assert_equal(stderr, "Y")
 
+
+def test_two_expectations():
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect(['list_serials'], returncode=0)
+        mock.expect(['vandra_capture'], returncode=0)
+
+        subprocess.check_call(['list_serials'])
+        subprocess.check_call(['vandra_capture'])
