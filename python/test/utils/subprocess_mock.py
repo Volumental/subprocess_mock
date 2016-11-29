@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright 2016 Volumental AB. CONFIDENTIAL. DO NOT REDISTRIBUTE.
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, Union
 from unittest.mock import patch
 
 import subprocess
@@ -19,6 +19,7 @@ class FakeProcess(object):
                  preexec_fn=None, close_fds=False, shell=False, cwd=None, env=None,
                  universal_newlines=False, startupinfo=None, creationflags=0) -> None:
         self.args = args
+        self.universal_newlines = universal_newlines
 
     def __enter__(self):
         return self
@@ -31,8 +32,16 @@ class FakeProcess(object):
     def _setup(self, fake_info: FakeInfo):
         self.fake_info = fake_info
 
-    def communicate(self, input=None, timeout: int=None) -> Tuple[str, str]:
-        return self.fake_info.stdout, self.fake_info.stderr
+    def communicate(self, input=None, timeout: int=None) -> \
+            Union[Tuple[str, str], Tuple[bytes, bytes]]:
+        def encode_or_none(s: str) -> bytes:
+            if s:
+                return s.encode('utf-8')
+            return None
+
+        if self.universal_newlines:
+            return self.fake_info.stdout, self.fake_info.stderr
+        return encode_or_none(self.fake_info.stdout), encode_or_none(self.fake_info.stderr)
 
     def poll(self):
         return self.fake_info.returncode
