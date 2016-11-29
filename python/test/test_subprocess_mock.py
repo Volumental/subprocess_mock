@@ -26,6 +26,12 @@ def test_check_call_failure():
         subprocess.check_call(['ls', '-l'])
 
 
+@raises(AssertionError)
+def test_unexpected_popen():
+    with subprocess_mock.patch_subprocess():
+        subprocess.check_call(['ls', '-l'])
+
+
 def test_check_ouput_success():
     with subprocess_mock.patch_subprocess() as mock:
         mock.expect(['ls', '-l'], stdout="FOOBAR", returncode=0)
