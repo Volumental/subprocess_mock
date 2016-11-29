@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 # Copyright 2016 Volumental AB. CONFIDENTIAL. DO NOT REDISTRIBUTE.
+r"""subprocess_mock - Easy mocking of the subprocess module
+
+The following will patch the subprocess module so that no new processes are spawned.
+
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect(['ls', '-l'], returncode=0)
+        subprocess.check_call(['ls', '-l'])
+
+"""
 from typing import Tuple, List, Any, Union
 from unittest.mock import patch
 
