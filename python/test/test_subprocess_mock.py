@@ -40,9 +40,7 @@ def test_check_ouput_failure():
         subprocess.check_output(['ls', '-l'])
 
 
-# TODO(samuel): The below specific exception is correct to assert, but won't lint for some reason
-#@raises(subprocess.TimeoutExpired)
-@raises(subprocess.SubprocessError)
+@raises(subprocess.TimeoutExpired)  # type: ignore
 def test_timeout():
     with subprocess_mock.patch_subprocess() as mock:
         mock.expect(['ls', '-l'], returncode=-1, duration=10)
