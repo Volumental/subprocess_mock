@@ -79,3 +79,30 @@ def test_two_expectations():
 
         subprocess.check_call(['list_serials'])
         subprocess.check_call(['vandra_capture'])
+
+
+def test_regexp_match():
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect(['cmd', '--flag=.+'], returncode=0)
+        subprocess.check_call(['cmd', '--flag=YES'])
+
+
+@raises(AssertionError)
+def test_regexp_no_match():
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect(['cmd', '--flag=.+'], returncode=0)
+        subprocess.check_call(['cmd', '--wrong=YES'])
+
+
+@raises(AssertionError)
+def test_too_few_args():
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect(['cmd', '--flag=.+'], returncode=0)
+        subprocess.check_call(['cmd'])
+
+
+@raises(AssertionError)
+def test_too_many_args():
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect(['cmd', '--flag=.+'], returncode=0)
+        subprocess.check_call(['cmd', '--flag=YES', '--unexpected'])
