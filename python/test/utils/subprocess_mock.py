@@ -12,6 +12,7 @@ The following will patch the subprocess module so that no new processes are spaw
 from typing import Tuple, List, Any, Union
 from unittest.mock import patch
 import re
+from io import StringIO
 
 import subprocess
 
@@ -49,6 +50,10 @@ class FakeProcess(object):
     # are called with wrong arguments. E.g. calling Popen with `returncode` argument must fail test
     def _setup(self, expectation: Expectation):
         self.expectation = expectation
+
+        # Set the attributes needed
+        self.returncode = self.expectation.returncode
+        self.stdout = StringIO(self.expectation.stdout)
 
     def communicate(self, input=None, timeout: int=None) -> \
             Union[Tuple[str, str], Tuple[bytes, bytes]]:
