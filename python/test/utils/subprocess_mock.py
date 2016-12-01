@@ -11,6 +11,7 @@ The following will patch the subprocess module so that no new processes are spaw
 """
 from typing import Tuple, List, Any, Union
 from unittest.mock import patch
+import re
 
 import subprocess
 
@@ -25,7 +26,9 @@ class Expectation(object):
         self.duration = duration
 
     def matches(self, command: List[str]):
-        return self.command == command
+        if len(self.command) != len(command):
+            return False
+        return all(re.match(pattern, c) for pattern, c in zip(self.command, command))
 
 
 class FakeProcess(object):
