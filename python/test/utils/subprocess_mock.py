@@ -68,15 +68,18 @@ class FakeProcess(object):
 class SubprocessMock(object):
     def __init__(self) -> None:
         # TODO(samuel): Actually the type is `_patch`
+        self.expected = {}  # type: Dict[str, FakeInfo]
         self._popen_patch = None  # type: Any
 
     def __enter__(self):
-        self._popen_patch.__enter__()
-        self.expected = {}
+        if self._popen_patch:
+            self._popen_patch.__enter__()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        return self._popen_patch.__exit__(exc_type, exc_val, exc_tb)
+        if self._popen_patch:
+            return self._popen_patch.__exit__(exc_type, exc_val, exc_tb)
+        return None
 
     def Popen(self, command: List[str], *args, **kwargs) -> FakeProcess:
         if repr(command) in self.expected:
