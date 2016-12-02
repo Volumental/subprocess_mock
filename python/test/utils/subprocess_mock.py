@@ -17,8 +17,11 @@ from io import StringIO
 import subprocess
 
 
+Command = Union[List[str], str]
+
+
 class Expectation(object):
-    def __init__(self, command: List[str],
+    def __init__(self, command: Command,
                  stdout: str, stderr: str, returncode: int, duration: int) -> None:
         self.command = command
         self.stdout = stdout
@@ -26,9 +29,11 @@ class Expectation(object):
         self.returncode = returncode
         self.duration = duration
 
-    def matches(self, command: List[str]):
+    def matches(self, command: Command):
         if len(self.command) != len(command):
             return False
+        if self.command == command:
+            return True
         return all(re.match(pattern, c) for pattern, c in zip(self.command, command))
 
 
@@ -58,9 +63,9 @@ class FakeProcess(object):
     def communicate(self, input=None, timeout: int=None) -> \
             Union[Tuple[str, str], Tuple[bytes, bytes]]:
         def encode_or_none(s: str) -> bytes:
-            if s:
-                return s.encode('utf-8')
-            return None
+            if s is None:
+                return None
+            return s.encode('utf-8')
 
         if self.universal_newlines:
             return self.expectation.stdout, self.expectation.stderr
@@ -79,6 +84,12 @@ class FakeProcess(object):
         pass
 
 
+def format_command(command: Command) -> str:
+    if isinstance(command, str):
+        return command
+    return ' '.join(command)
+
+
 class SubprocessMock(object):
     def __init__(self) -> None:
         # TODO(samuel): Actually the type is `_patch`
@@ -95,18 +106,18 @@ class SubprocessMock(object):
             return self._popen_patch.__exit__(exc_type, exc_val, exc_tb)
         return None
 
-    def Popen(self, command: List[str], *args, **kwargs) -> FakeProcess:
+    def Popen(self, command: Command, *args, **kwargs) -> FakeProcess:
         matching = next((e for e in self.expected if e.matches(command)), None)
         if matching:
             fake_process = FakeProcess(command, *args, **kwargs)
             fake_process._setup(matching)
             return fake_process
 
-        error_message = "Unexpected process spawned: '{}'".format(' '.join(command))
-        hint = "Try `mock.expect({})`".format(command)
+        error_message = "Unexpected process spawned: '{}'".format(format_command(command))
+        hint = "Try `mock.expect({})`".format(repr(command))
         assert False, "{error_message}. {hint}".format(error_message=error_message, hint=hint)
 
-    def expect(self, command: List[str],
+    def expect(self, command: Command,
                stdout: str=None, stderr: str=None, returncode: int=0, duration: int=0) -> None:
         self.expected.append(Expectation(command, stdout, stderr, returncode, duration))
 
