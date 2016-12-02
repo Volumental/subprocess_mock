@@ -106,3 +106,9 @@ def test_too_many_args():
     with subprocess_mock.patch_subprocess() as mock:
         mock.expect(['cmd', '--flag=.+'], returncode=0)
         subprocess.check_call(['cmd', '--flag=YES', '--unexpected'])
+
+
+def test_string_command():
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect('just_a_string', returncode=0)
+        subprocess.check_call('just_a_string')
