@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2016 Volumental AB. CONFIDENTIAL. DO NOT REDISTRIBUTE.
+# Copyright 2017 Volumental AB. CONFIDENTIAL. DO NOT REDISTRIBUTE.
 import subprocess
 from nose.tools import assert_equal, raises
 
