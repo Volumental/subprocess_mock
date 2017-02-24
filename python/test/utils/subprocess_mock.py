@@ -28,6 +28,7 @@ class Expectation(object):
         self.stderr = stderr
         self.returncode = returncode
         self.duration = duration
+        self.invoke_count = 0
 
     def matches(self, command: Command):
         if len(self.command) != len(command):
@@ -35,6 +36,9 @@ class Expectation(object):
         if self.command == command:
             return True
         return all(re.match(pattern, c) for pattern, c in zip(self.command, command))
+
+    def on_invoke(self):
+        self.invoke_count += 1
 
 
 class FakeProcess(object):
@@ -109,6 +113,7 @@ class SubprocessMock(object):
     def Popen(self, command: Command, *args, **kwargs) -> FakeProcess:
         matching = next((e for e in self.expected if e.matches(command)), None)
         if matching:
+            matching.on_invoke()
             fake_process = FakeProcess(command, *args, **kwargs)
             fake_process._setup(matching)
             return fake_process
@@ -121,6 +126,13 @@ class SubprocessMock(object):
     def expect(self, command: Command,
                stdout: str=None, stderr: str=None, returncode: int=0, duration: int=0) -> None:
         self.expected.append(Expectation(command, stdout, stderr, returncode, duration))
+
+    def verify(self):
+        """Asserts all expected subprocesses were called at least once"""
+        for e in self.expected:
+            if e.invoke_count == 0:
+                raise AssertionError(
+                    "Subprocess never invoked: {0}".format(format_command(e.command)))
 
 
 def patch_subprocess() -> SubprocessMock:
