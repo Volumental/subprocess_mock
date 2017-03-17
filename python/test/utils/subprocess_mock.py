@@ -48,6 +48,8 @@ class FakeProcess(object):
         self.expectation = None  # type: Expectation
         self.args = args
         self.universal_newlines = universal_newlines
+        self.stdout = stdout
+        self.stderr = stderr
 
     def __enter__(self):
         return self
@@ -62,7 +64,6 @@ class FakeProcess(object):
 
         # Set the attributes needed
         self.returncode = self.expectation.returncode
-        self.stdout = StringIO(self.expectation.stdout)
 
     def communicate(self, input=None, timeout: int=None) -> \
             Union[Tuple[str, str], Tuple[bytes, bytes]]:
@@ -70,6 +71,16 @@ class FakeProcess(object):
             if s is None:
                 return None
             return s.encode('utf-8')
+
+        if self.stdout and self.expectation.stdout:
+            self.stdout.write(self.expectation.stdout)
+        if not self.stdout:
+            self.stdout = StringIO(self.expectation.stdout)
+
+        if self.stderr and self.expectation.stderr:
+            self.stderr.write(self.expectation.stderr)
+        if not self.stderr:
+            self.stderr = StringIO(self.expectation.stderr)
 
         if self.universal_newlines:
             return self.expectation.stdout, self.expectation.stderr
