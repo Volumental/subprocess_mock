@@ -12,7 +12,7 @@ The following will patch the subprocess module so that no new processes are spaw
 from typing import Tuple, List, Any, Union
 from unittest.mock import patch
 import re
-from io import StringIO
+import os
 
 import subprocess
 
@@ -41,6 +41,13 @@ class Expectation(object):
         self.invoke_count += 1
 
 
+def create_file_like(contents: Union[str, bytes]):
+    r, w = os.pipe()
+    with os.fdopen(w, 'w') as tmp:
+        tmp.write(contents)
+    return os.fdopen(r, 'r')
+
+
 class FakeProcess(object):
     def __init__(self, args, bufsize=0, executable=None, stdin=None, stdout=None, stderr=None,
                  preexec_fn=None, close_fds=False, shell=False, cwd=None, env=None,
@@ -48,6 +55,9 @@ class FakeProcess(object):
         self.expectation = None  # type: Expectation
         self.args = args
         self.universal_newlines = universal_newlines
+
+        self.stdout = stdout
+        self.stderr = stderr
 
     def __enter__(self):
         return self
@@ -62,18 +72,33 @@ class FakeProcess(object):
 
         # Set the attributes needed
         self.returncode = self.expectation.returncode
-        self.stdout = StringIO(self.expectation.stdout)
 
-    def communicate(self, input=None, timeout: int=None) -> \
-            Union[Tuple[str, str], Tuple[bytes, bytes]]:
-        def encode_or_none(s: str) -> bytes:
+        if self.stdout == subprocess.PIPE:
+            self.stdout = create_file_like(self.expectation.stdout or '')
+        else:
+            self.stdout = self.expectation.stdout
+
+        if self.stderr == subprocess.PIPE:
+            self.stderr = create_file_like(self.expectation.stderr or '')
+        else:
+            self.stderr = self.expectation.stderr
+
+    def communicate(self, input=None, timeout: int=None) ->\
+            Tuple[Union[str, bytes], Union[str, bytes]]:
+        def encode_or_none(s: str) -> Union[str, bytes]:
+            """Encodes the str if needed"""
             if s is None:
                 return None
+            if self.universal_newlines:
+                return s
             return s.encode('utf-8')
 
-        if self.universal_newlines:
-            return self.expectation.stdout, self.expectation.stderr
-        return encode_or_none(self.expectation.stdout), encode_or_none(self.expectation.stderr)
+        def read_or_none(o):
+            if o is None:
+                return None
+            return o.read()
+
+        return encode_or_none(read_or_none(self.stdout)), encode_or_none(read_or_none(self.stderr))
 
     def poll(self):
         return self.expectation.returncode
