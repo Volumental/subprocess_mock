@@ -96,6 +96,8 @@ class FakeProcess(object):
         def read_or_none(o):
             if o is None:
                 return None
+            if isinstance(o, str) or isinstance(o, bytes):
+                return o
             return o.read()
 
         return encode_or_none(read_or_none(self.stdout)), encode_or_none(read_or_none(self.stderr))
