@@ -112,3 +112,22 @@ def test_string_command():
     with subprocess_mock.patch_subprocess() as mock:
         mock.expect('just_a_string', returncode=0)
         subprocess.check_call('just_a_string')
+
+
+def test_side_effect_stdout():
+    def side_effect(stdin, stdout, stderr):
+        print("OH HI THERE!", file=stdout)
+        return 0
+
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect('foo', side_effect=side_effect)
+        assert_equal(subprocess.check_output('foo'), b'OH HI THERE!\n')
+
+
+def test_side_effect_returncode():
+    def side_effect(stdin, stdout, stderr):
+        return 17
+
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect('foo', side_effect=side_effect)
+        assert_equal(subprocess.call('foo'), 17)
