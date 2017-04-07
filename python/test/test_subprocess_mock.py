@@ -131,3 +131,13 @@ def test_side_effect_returncode():
     with subprocess_mock.patch_subprocess() as mock:
         mock.expect('foo', side_effect=side_effect)
         assert_equal(subprocess.call('foo'), 17)
+
+
+@raises(AssertionError)
+def test_side_effect_bad_expectation():
+    """It is an error to specify both side_effect and stdout, stderr or returncode"""
+    def side_effect(stdin, stdout, stderr):
+        return 0
+
+    with subprocess_mock.patch_subprocess() as mock:
+        mock.expect('foo', side_effect=side_effect, stdout="what?")
