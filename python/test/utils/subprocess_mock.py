@@ -26,7 +26,6 @@ class Expectation(object):
     def __init__(self, command: Command,
                  stdout: str, stderr: str, returncode: int, duration: int,
                  side_effect: SideEffect) -> None:
-        # TODO: if side_effect is set stdout, stderr and returncode must not
         self.command = command
         self.stdout = stdout
         self.stderr = stderr
@@ -166,6 +165,10 @@ class SubprocessMock(object):
     def expect(self, command: Command,
                stdout: str=None, stderr: str=None, returncode: int=0, duration: int=0,
                side_effect=None) -> None:
+        # TODO: if side_effect is set stdout, stderr and returncode must not
+        assert side_effect is None or (stdout is None and stderr is None), \
+            "stdout, stderr, and returncode must not be set when using side_effect"
+
         expectation = Expectation(command, stdout, stderr, returncode, duration, side_effect)
         self.expected.append(expectation)
 
