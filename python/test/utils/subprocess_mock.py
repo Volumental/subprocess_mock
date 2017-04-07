@@ -19,7 +19,7 @@ import subprocess
 
 
 Command = Union[List[str], str]
-SideEffect = Callable[[io.StringIO, io.StringIO, io.StringIO], int]
+SideEffect = Callable[[Command, io.StringIO, io.StringIO, io.StringIO], int]
 
 
 class Expectation(object):
@@ -71,14 +71,14 @@ class FakeProcess(object):
 
     # NOTE: These are not to be taken as arguments to __init__ to detect problems when Popen
     # are called with wrong arguments. E.g. calling Popen with `returncode` argument must fail test
-    def _setup(self, expectation: Expectation):
+    def _setup(self, command: Command, expectation: Expectation):
         self.expectation = expectation
 
         if expectation.side_effect:
             stdout = io.StringIO()
             stderr = io.StringIO()
             stdin = io.StringIO()  # not supported
-            expectation.returncode = expectation.side_effect(stdin, stdout, stderr)
+            expectation.returncode = expectation.side_effect(command, stdin, stdout, stderr)
             expectation.stdout = stdout.getvalue()
             expectation.stderr = stderr.getvalue()
 
@@ -154,7 +154,7 @@ class SubprocessMock(object):
         if matching:
             matching.on_invoke()
             fake_process = FakeProcess(command, *args, **kwargs)
-            fake_process._setup(matching)
+            fake_process._setup(command, matching)
             return fake_process
 
         error_message = "Unexpected process spawned:\n{}\nExpected one of:\n{}".format(
