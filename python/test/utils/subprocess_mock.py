@@ -9,7 +9,8 @@ The following will patch the subprocess module so that no new processes are spaw
         subprocess.check_call(['ls', '-l'])
 
 """
-from typing import Tuple, List, Any, Union
+import io
+from typing import Tuple, List, Any, Union, Callable
 from unittest.mock import patch
 import re
 import os
@@ -18,17 +19,21 @@ import subprocess
 
 
 Command = Union[List[str], str]
+SideEffect = Callable[[io.StringIO, io.StringIO, io.StringIO], int]
 
 
 class Expectation(object):
     def __init__(self, command: Command,
-                 stdout: str, stderr: str, returncode: int, duration: int) -> None:
+                 stdout: str, stderr: str, returncode: int, duration: int,
+                 side_effect: SideEffect) -> None:
+        # TODO: if side_effect is set stdout, stderr and returncode must not
         self.command = command
         self.stdout = stdout
         self.stderr = stderr
         self.returncode = returncode
         self.duration = duration
         self.invoke_count = 0
+        self.side_effect = side_effect
 
     def matches(self, command: Command):
         if len(self.command) != len(command):
@@ -69,6 +74,14 @@ class FakeProcess(object):
     # are called with wrong arguments. E.g. calling Popen with `returncode` argument must fail test
     def _setup(self, expectation: Expectation):
         self.expectation = expectation
+
+        if expectation.side_effect:
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            stdin = io.StringIO()  # not supported
+            expectation.returncode = expectation.side_effect(stdin, stdout, stderr)
+            expectation.stdout = stdout.getvalue()
+            expectation.stderr = stderr.getvalue()
 
         # Set the attributes needed
         self.returncode = self.expectation.returncode
@@ -151,8 +164,10 @@ class SubprocessMock(object):
         assert False, "{error_message}. {hint}".format(error_message=error_message, hint=hint)
 
     def expect(self, command: Command,
-               stdout: str=None, stderr: str=None, returncode: int=0, duration: int=0) -> None:
-        self.expected.append(Expectation(command, stdout, stderr, returncode, duration))
+               stdout: str=None, stderr: str=None, returncode: int=0, duration: int=0,
+               side_effect=None) -> None:
+        expectation = Expectation(command, stdout, stderr, returncode, duration, side_effect)
+        self.expected.append(expectation)
 
     def verify(self):
         """Asserts all expected subprocesses were called at least once"""
