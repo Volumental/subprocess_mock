@@ -104,7 +104,7 @@ class TestSubprocessMock(TestCase):
             subprocess.check_call('just_a_string')
 
     def test_side_effect_stdout(self):
-        def side_effect(stdin, stdout, stderr):
+        def side_effect(argv, stdin, stdout, stderr):
             print("OH HI THERE!", file=stdout)
             return 0
 
@@ -113,7 +113,7 @@ class TestSubprocessMock(TestCase):
             assert_equal(subprocess.check_output('foo'), b'OH HI THERE!\n')
 
     def test_side_effect_returncode(self):
-        def side_effect(stdin, stdout, stderr):
+        def side_effect(argv, stdin, stdout, stderr):
             return 17
 
         with subprocess_mock.patch_subprocess() as mock:
@@ -123,8 +123,17 @@ class TestSubprocessMock(TestCase):
     @raises(AssertionError)
     def test_side_effect_bad_expectation(self):
         """It is an error to specify both side_effect and stdout, stderr or returncode"""
-        def side_effect(stdin, stdout, stderr):
+        def side_effect(argv, stdin, stdout, stderr):
             return 0
 
         with subprocess_mock.patch_subprocess() as mock:
             mock.expect('foo', side_effect=side_effect, stdout="what?")
+
+    def test_side_effect_argv(self):
+        def side_effect(argv, stdin, stdout, stderr):
+            print(argv[1], file=stdout)
+            return 0
+
+        with subprocess_mock.patch_subprocess() as mock:
+            mock.expect(['foo', '--lol'], side_effect=side_effect)
+            assert_equal(subprocess.check_output(['foo', '--lol']), b'--lol\n')
