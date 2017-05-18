@@ -157,8 +157,8 @@ class SubprocessMock(object):
             fake_process._setup(command, matching)
             return fake_process
 
-        error_message = "Unexpected process spawned:\n{}\nExpected one of:\n{}".format(
-            format_command(command), '\n'.join([format_command(e.command) for e in self.expected]))
+        error_message = "Unexpected process spawned:\n\n{}\n\nExpected one of:\n\n{}\n\n".format(
+            format_command(command), '\n\n'.join([format_command(e.command) for e in self.expected]))
         hint = "Try `mock.expect({})`".format(repr(command))
         assert False, "{error_message}. {hint}".format(error_message=error_message, hint=hint)
 
