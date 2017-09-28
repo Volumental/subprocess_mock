@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from nose.tools import assert_equal, raises
 
-import test.utils.subprocess_mock as subprocess_mock
+import subprocess_mock
 
 
 class TestSubprocessMock(TestCase):
